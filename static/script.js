@@ -24,7 +24,7 @@ let cy = cytoscape({
   textureOnViewport: false,
   motionBlur: false,
   motionBlurOpacity: 0.2,
-  wheelSensitivity: 1,
+  // wheelSensitivity: 1,
   pixelRatio: 'auto'
 });
 
@@ -38,7 +38,7 @@ cy.on('cxttap', function (event) {
       y: event.position.y,}
   })
 
-  fetch('/node', {
+  fetch('/api/node/', {
     method: "POST",
     headers: new Headers(),
     body: {
@@ -47,5 +47,15 @@ cy.on('cxttap', function (event) {
     }
   }).then(function (response) {
     console.log(response)
+  })
+});
+
+cy.on('tap', 'node', function (event) {
+  console.log(event.target.id())
+  fetch('/api/node/'+event.target.id(), {
+    method: "DELETE",
+    headers: new Headers()
+  }).then(function (response) {
+    event.target.remove()
   })
 });

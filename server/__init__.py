@@ -3,8 +3,11 @@ from typing import Union, Any
 from flask import Flask, request, render_template, url_for
 
 
-# Основная функция сервера
-def setup_app():
+def setup_app() -> Flask:
+    """
+    Инициализация сервера
+    :return: Flask экземпляр Flask
+    """
     # Создаем экземпляр приложения
     app = Flask(
         __name__,
@@ -18,6 +21,10 @@ def setup_app():
 
     @app.route('/')
     def hello_world():
+        """
+        Возвращаем главную страницу и подключаем к ней статический скрипт
+        :rtype: object
+        """
         script_url = url_for('static', filename='script.js')
         return render_template('editor.html', script_url=script_url)
 
@@ -25,8 +32,20 @@ def setup_app():
     def init_editor():
         return {}
 
-    @app.route('/api/node/<int:id>')
-    def node(id) -> Union[dict[str, Any], dict[str, Any], str]:
+    @app.route('/api/node/', methods=['POST'])
+    def create_node():
+        """
+        Метод регистрации нового узла
+        :return:
+        """
+        return {}
+
+    @app.route('/api/node/<uuid:id>', methods=['GET', 'UPDATE', 'DELETE'])
+    def node(id):
+        """
+        Метод для работы с узлами
+        :rtype: object
+        """
         # Перегружаем метод api для разных методов запроса
         # Получение данных
         if request.method == "GET":
@@ -38,6 +57,15 @@ def setup_app():
 
         else:
             return 'OOPS'
+
+    @app.errorhandler(404)
+    def not_found():
+        """
+        Обработчки ошибки 404
+        :return:
+        """
+        return 'OOPS'
+
     return app
 
 

@@ -1,7 +1,7 @@
 import os
 import uuid
 from typing import Union, Any
-from flask import Flask, request, render_template, url_for
+from flask import Flask, request, render_template, url_for, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from server.database import db, Node
 
@@ -20,7 +20,8 @@ def setup_app() -> Flask:
     )
     app.config.from_mapping(
         # DATABASE=os.path.join(app.instance_path, 'canvas.sqlite')
-        SQLALCHEMY_DATABASE_URI='sqlite:////tmp/test.db'
+        SQLALCHEMY_DATABASE_URI='sqlite:///D:\\Projects\\CanvasRemake\\static\\app.db',
+        SQLALCHEMY_TRACK_MODIFICATIONS=False
     )
 
     db.init_app(app)
@@ -34,13 +35,26 @@ def setup_app() -> Flask:
         script_url = url_for('static', filename='script.js')
         return render_template('editor.html', script_url=script_url)
 
-    @app.route('/api/init')
+    @app.route('/api/init/', methods=['GET'])
     def init_editor():
         """
         Метод подготовки редактора к работе
         :rtype: object
         """
-        return {}
+        nodes = Node.query.all()
+        result = []
+        for node in nodes:
+            result.append(dict(
+                group='nodes',
+                data=dict(
+                    id=node.id,
+                ),
+                position=dict(
+                    x=node.x,
+                    y=node.y
+                ),
+            ))
+        return jsonify(result), 200
 
     @app.route('/api/node/', methods=['POST'])
     def create_node():
@@ -48,10 +62,21 @@ def setup_app() -> Flask:
         Метод регистрации нового узла
         :return:
         """
+        data = request.\
+            get_json()
 
-        db.session.add
+        node = Node(
+            id=data['id'],
+            x=data['position']['x'],
+            y=data['position']['y']
+        )
 
-        return {}
+        db.session.add(node)
+        db.session.commit()
+
+        print(node.id)
+
+        return {}, 201
 
     @app.route('/api/node/<uuid:node_id>', methods=['GET', 'UPDATE', 'DELETE'])
     def node(node_id):

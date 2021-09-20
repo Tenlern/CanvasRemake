@@ -28,6 +28,21 @@ let cy = cytoscape({
   pixelRatio: 'auto'
 });
 
+cy.ready(function (event) {
+  fetch('/api/init/', {
+    method: 'GET',
+    headers: new Headers(),
+  })
+      .then(response => response.json())
+      .then(function (data) {
+        console.log(data)
+        // cy.data({
+        //   elements: data
+        // });
+        cy.add(data)
+      })
+});
+
 // При нажатии на правую кнопку мышки создаем новый узел
 cy.on('cxttap', function (event) {
   let node = cy.add({
@@ -36,18 +51,23 @@ cy.on('cxttap', function (event) {
     position: {
       x: event.position.x,
       y: event.position.y,}
-  })
+  });
 
-  fetch('/api/node/', {
-    method: "POST",
-    headers: new Headers(),
-    body: {
-      id: node.id,
-      position: node.position,
-    }
-  }).then(function (response) {
-    console.log(response)
-  })
+  data = {
+    id: node.id(),
+    position: node.position(),
+  };
+
+  fetch('/api/node/',
+      {
+        method: "POST",
+        headers: new Headers({'content-type': 'application/json'}),
+        body: JSON.stringify(data),
+      })
+      .then(response => response.json())
+      .then(function (data) {
+        node.id=data;
+      })
 });
 
 cy.on('tap', 'node', function (event) {

@@ -2,44 +2,46 @@ import os
 import uuid
 from typing import Union, Any
 from flask import Flask, request, render_template, url_for, jsonify
-from flask_sqlalchemy import SQLAlchemy
 from server.database import db, Node
 
 
 def setup_app() -> Flask:
     """
-    Инициализация сервера
-    :return: Flask экземпляр Flask
+    Инициализация и настройка сервера, обслуживающего api приложения
+    :rtype: Flask
+    :return: экземпляр Flask
     """
     # Создаем экземпляр приложения
-    app = Flask(
+    server: Flask = Flask(
         __name__,
         instance_relative_config=True,
         template_folder='../templates',
         static_folder='../static'
     )
-    app.config.from_mapping(
-        # DATABASE=os.path.join(app.instance_path, 'canvas.sqlite')
+    # Добавляем неоьходимые настройки для работы с SQLAlchemy
+    server.config.from_mapping(
         SQLALCHEMY_DATABASE_URI='sqlite:///D:\\Projects\\CanvasRemake\\static\\app.db',
         SQLALCHEMY_TRACK_MODIFICATIONS=False
     )
 
-    db.init_app(app)
+    # Подключаем базу данных
+    db.init_app(server)
 
-    @app.route('/')
-    def hello_world():
+    # Прописываем адреса, прослушиваемые сервером
+    @server.route('/')
+    def hello_world() -> object:
         """
-        Возвращаем главную страницу и подключаем к ней статический скрипт
+        Возвращаем главную страницу и подключаем к ней статический файл js-скрипта
         :rtype: object
         """
         script_url = url_for('static', filename='script.js')
         return render_template('editor.html', script_url=script_url)
 
-    @app.route('/api/init/', methods=['GET'])
+    @server.route('/api/init/', methods=['GET'])
     def init_editor():
         """
         Метод подготовки редактора к работе
-        :rtype: object
+        :rtype: JSON
         """
         nodes = Node.query.all()
         result = []
@@ -56,14 +58,14 @@ def setup_app() -> Flask:
             ))
         return jsonify(result), 200
 
-    @app.route('/api/node/', methods=['POST'])
+    @server.route('/api/node/', methods=['POST'])
     def create_node():
         """
         Метод регистрации нового узла
+        :rtype: object
         :return:
         """
-        data = request.\
-            get_json()
+        data = request.get_json()
 
         node = Node(
             id=data['id'],
@@ -74,29 +76,41 @@ def setup_app() -> Flask:
         db.session.add(node)
         db.session.commit()
 
-        print(node.id)
-
         return {}, 201
 
-    @app.route('/api/node/<uuid:node_id>', methods=['GET', 'UPDATE', 'DELETE'])
-    def node(node_id):
+    @server.route('/api/node/<uuid:node_id>', methods=['GET', 'PUT', 'PATCH', 'DELETE'])
+    def node_rud(node_id: uuid) -> object:
         """
-        Метод для работы с узлами
+        Метод READ, UPDATE, DELETE для работы с узлами
         :rtype: object
         """
+
+        node = Node.query.filter_by(id=str(node_id)).first_or_404()
+
         # Перегружаем метод api для разных методов запроса
         # Получение данных
         if request.method == "GET":
-            return {"id": node_id}
+            return jsonify(node), 200
+
+        # Обновление
+        elif request.method == 'PATCH':
+            data = request.get_json()
+
+            node.x = float(data['x'])
+            node.y = float(data['y'])
+
+            db.session.commit()
+            return {}, 204
 
         # Удаление
         elif request.method == "DELETE":
-            return {"id": node_id}
+            # node = Node.query().get(node_id)
+            node = Node.query.filter_by(id=str(node_id)).first_or_404()
+            db.session.delete(node)
+            db.session.commit()
+            return {}, 204
 
-        else:
-            return 'OOPS'
-
-    @app.errorhandler(404)
+    @server.errorhandler(404)
     def not_found():
         """
         Обработчки ошибки 404
@@ -104,7 +118,7 @@ def setup_app() -> Flask:
         """
         return 'OOPS'
 
-    return app
+    return server
 
 
 if __name__ == '__main__':

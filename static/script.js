@@ -53,7 +53,7 @@ cy.on('cxttap', function (event) {
       y: event.position.y,}
   });
 
-  data = {
+  let data = {
     id: node.id(),
     position: node.position(),
   };
@@ -70,12 +70,54 @@ cy.on('cxttap', function (event) {
       })
 });
 
-cy.on('tap', 'node', function (event) {
-  console.log(event.target.id())
-  fetch('/api/node/'+event.target.id(), {
-    method: "DELETE",
-    headers: new Headers()
-  }).then(function (response) {
-    event.target.remove()
-  })
+// cy.on('', 'node', function (event) {
+//
+// });
+
+cy.on('dragfree ', 'node', function (event) {
+    let new_pos = event.target.position();
+
+    fetch('/api/node/'+event.target.id(),
+        {
+            method: "PATCH",
+            headers: new Headers({'content-type': 'application/json'}),
+            body: JSON.stringify(new_pos)
+        })
+        .then(function (response) {
+        // event.target.remove()
+        })
 });
+
+function deleteElement() {
+    let selected_elements = cy.filter(':selected')
+
+    selected_elements.forEach(function (element) {
+        console.log()
+
+        fetch('/api/node/'+ element.id(), {
+            method: "DELETE",
+            headers: new Headers()
+        })
+            .then(function (response) {
+                element.remove()
+            })
+    });
+    return false
+}
+
+function addEdge() {
+    let selected_elements = cy.filter(':selected')
+
+    selected_elements.forEach(function (element) {
+        console.log()
+
+        fetch('/api/node/'+ element.id(), {
+            method: "DELETE",
+            headers: new Headers()
+        })
+            .then(function (response) {
+                element.remove()
+            })
+    });
+    return false
+}
